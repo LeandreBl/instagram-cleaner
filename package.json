@@ -1,0 +1,42 @@
+{
+  "name": "instagram-cleaner",
+  "version": "0.1.0",
+  "description": "Clean your Instagram likes and comments history from the existing web UI.",
+  "type": "module",
+  "bin": {
+    "instagram-cleaner": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build --silent && node ./dist/cli.js",
+    "likes": "npm run build --silent && node ./dist/cli.js --likes",
+    "comments": "npm run build --silent && node ./dist/cli.js --comments",
+    "clean": "rm -rf dist",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
+  },
+  "keywords": [
+    "instagram",
+    "cleanup",
+    "puppeteer"
+  ],
+  "license": "Unlicense",
+  "dependencies": {
+    "puppeteer": "^24.9.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.15.21",
+    "@types/yargs": "^17.0.33",
+    "eslint": "^10.4.0",
+    "prettier": "^3.8.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.59.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
