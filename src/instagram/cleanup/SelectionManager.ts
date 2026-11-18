@@ -4,16 +4,12 @@ import {
   clickSelectionTargetByKey,
   collectNextVisibleBatchTarget,
   collectSelectionResult,
-  isSelectionTargetChecked,
 } from './browser/selectVisibleBatch.js';
 import { getCheckboxCandidateSelector, getSelectableItemsSelector } from './selectors.js';
 import { ScrollManager } from './ScrollManager.js';
 import type { SelectionResult } from './types.js';
 
 const maxSelectionPasses = 12;
-const selectionClickRetries = 3;
-const selectionClickRetryDelayMs = 150;
-const clickSelectionCheckDelayMs = 150;
 
 export class SelectionManager {
   private readonly scrollManager: ScrollManager;
@@ -22,8 +18,7 @@ export class SelectionManager {
     this.scrollManager = new ScrollManager(context);
   }
 
-  public async selectBatch(): Promise<SelectionResult> {
-    const targetCount = this.context.batchSize;
+  public async selectBatch(targetCount: number): Promise<SelectionResult> {
     let selection = this.emptySelection();
 
     for (let pass = 0; pass < maxSelectionPasses && selection.count < targetCount; pass += 1) {
@@ -70,9 +65,13 @@ export class SelectionManager {
       }
 
       attemptedKeys.push(target.key);
-      const selected = await this.clickSelectionTarget(target.key);
+      const clicked = await this.context.page.evaluate(clickSelectionTargetByKey, {
+        checkboxSelector: getSelectableItemsSelector(),
+        controlText: this.context.controlText,
+        key: target.key,
+      });
 
-      if (!selected) {
+      if (!clicked) {
         this.context.debug(`Selection click did not register for target ${target.key}.`);
       }
 
@@ -87,42 +86,13 @@ export class SelectionManager {
     });
   }
 
-  private async clickSelectionTarget(key: string): Promise<boolean> {
-    for (let attempt = 0; attempt < selectionClickRetries; attempt += 1) {
-      const clicked = await this.context.page.evaluate(clickSelectionTargetByKey, {
-        checkboxSelector: getSelectableItemsSelector(),
-        controlText: this.context.controlText,
-        key,
-      });
-
-      if (clicked) {
-        await this.delay(clickSelectionCheckDelayMs);
-
-        if (await this.isSelectionTargetChecked(key)) {
-          return true;
-        }
-      }
-
-      await this.delay(selectionClickRetryDelayMs);
-    }
-
-    return false;
-  }
-
-  private async isSelectionTargetChecked(key: string): Promise<boolean> {
-    return this.context.page.evaluate(isSelectionTargetChecked, {
-      checkboxSelector: getSelectableItemsSelector(),
-      controlText: this.context.controlText,
-      key,
-    });
-  }
-
   private emptySelection(): SelectionResult {
     return {
       count: 0,
       confirmedCount: null,
       attemptedCount: 0,
       signatures: [],
+      countIsCumulative: false,
     };
   }
 
@@ -131,7 +101,10 @@ export class SelectionManager {
     nextSelection: SelectionResult,
   ): SelectionResult {
     const confirmedCount = nextSelection.confirmedCount ?? currentSelection.confirmedCount;
-    const count = nextSelection.confirmedCount ?? currentSelection.count + nextSelection.count;
+    const count =
+      nextSelection.confirmedCount !== null || nextSelection.countIsCumulative
+        ? Math.max(currentSelection.count, nextSelection.count)
+        : currentSelection.count + nextSelection.count;
     const signatures = Array.from(
       new Set([...currentSelection.signatures, ...nextSelection.signatures]),
     );
@@ -141,6 +114,7 @@ export class SelectionManager {
       confirmedCount,
       attemptedCount: currentSelection.attemptedCount + nextSelection.attemptedCount,
       signatures: signatures.slice(0, count),
+      countIsCumulative: currentSelection.countIsCumulative || nextSelection.countIsCumulative,
     };
   }
 

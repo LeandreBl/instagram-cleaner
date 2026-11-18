@@ -138,22 +138,24 @@ export function collectNextVisibleBatchTarget({
       if (element instanceof HTMLInputElement) {
         return element.checked;
       }
-      if (element.getAttribute('aria-checked') === 'true') {
-        return true;
-      }
 
-      const icon = element.querySelector('[data-bloks-name="ig.components.Icon"], img, svg');
-      if (!icon) {
-        return false;
-      }
+      return [element, ...Array.from(element.querySelectorAll('*'))].some((node) => {
+        if (node.getAttribute('aria-checked') === 'true') {
+          return true;
+        }
 
-      const style = window.getComputedStyle(icon);
-      const mask = style.maskImage || style.webkitMaskImage || '';
-      const resourceName = icon.getAttribute('resource_name') ?? '';
-      const source = icon.getAttribute('src') ?? icon.getAttribute('href') ?? '';
-      return [mask, resourceName, source].some((value) =>
-        this.normalize(value).includes('circle-check'),
-      );
+        if (!(node instanceof HTMLElement)) {
+          return false;
+        }
+
+        const style = window.getComputedStyle(node);
+        const mask = style.maskImage || style.webkitMaskImage || '';
+        const background = style.backgroundImage || '';
+        const source = node.getAttribute('src') ?? node.getAttribute('href') ?? '';
+        const signature = this.normalize([mask, background, source].join(' '));
+
+        return signature.includes('circle-check') || signature.includes('check__filled');
+      });
     }
 
     private uniqueByItem(elements: Element[]): Element[] {
@@ -222,16 +224,24 @@ export function collectNextVisibleBatchTarget({
     }
 
     private textPositionSignature(element: Element): string | null {
-      const text = this.normalize(
-        element.closest('div')?.textContent ?? element.textContent ?? '',
-      ).slice(0, 80);
+      let current: Element | null = element;
 
-      if (!text) {
-        return null;
+      for (let depth = 0; current && depth < 12; depth += 1) {
+        const ariaLabel = current.getAttribute('aria-label');
+        if (ariaLabel && !/casilla|checkbox|seleccionar/i.test(ariaLabel)) {
+          const normalizedLabel = this.normalize(ariaLabel).slice(0, 120);
+          if (normalizedLabel) {
+            return `aria:${normalizedLabel}`;
+          }
+        }
+        current = current.parentElement;
       }
 
-      const rect = element.getBoundingClientRect();
-      return `text:${text}:${Math.round(rect.top / 8)}:${Math.round(rect.left / 8)}`;
+      const text = this.normalize(
+        element.closest('div')?.textContent ?? element.textContent ?? '',
+      ).slice(0, 120);
+
+      return text ? `text:${text}` : null;
     }
 
     private stableUrlPart(value: string): string | null {
@@ -398,22 +408,24 @@ export function clickSelectionTargetByKey({
       if (element instanceof HTMLInputElement) {
         return element.checked;
       }
-      if (element.getAttribute('aria-checked') === 'true') {
-        return true;
-      }
 
-      const icon = element.querySelector('[data-bloks-name="ig.components.Icon"], img, svg');
-      if (!icon) {
-        return false;
-      }
+      return [element, ...Array.from(element.querySelectorAll('*'))].some((node) => {
+        if (node.getAttribute('aria-checked') === 'true') {
+          return true;
+        }
 
-      const style = window.getComputedStyle(icon);
-      const mask = style.maskImage || style.webkitMaskImage || '';
-      const resourceName = icon.getAttribute('resource_name') ?? '';
-      const source = icon.getAttribute('src') ?? icon.getAttribute('href') ?? '';
-      return [mask, resourceName, source].some((value) =>
-        this.normalize(value).includes('circle-check'),
-      );
+        if (!(node instanceof HTMLElement)) {
+          return false;
+        }
+
+        const style = window.getComputedStyle(node);
+        const mask = style.maskImage || style.webkitMaskImage || '';
+        const background = style.backgroundImage || '';
+        const source = node.getAttribute('src') ?? node.getAttribute('href') ?? '';
+        const signature = this.normalize([mask, background, source].join(' '));
+
+        return signature.includes('circle-check') || signature.includes('check__filled');
+      });
     }
 
     private uniqueByItem(elements: Element[]): Element[] {
@@ -482,16 +494,24 @@ export function clickSelectionTargetByKey({
     }
 
     private textPositionSignature(element: Element): string | null {
-      const text = this.normalize(
-        element.closest('div')?.textContent ?? element.textContent ?? '',
-      ).slice(0, 80);
+      let current: Element | null = element;
 
-      if (!text) {
-        return null;
+      for (let depth = 0; current && depth < 12; depth += 1) {
+        const ariaLabel = current.getAttribute('aria-label');
+        if (ariaLabel && !/casilla|checkbox|seleccionar/i.test(ariaLabel)) {
+          const normalizedLabel = this.normalize(ariaLabel).slice(0, 120);
+          if (normalizedLabel) {
+            return `aria:${normalizedLabel}`;
+          }
+        }
+        current = current.parentElement;
       }
 
-      const rect = element.getBoundingClientRect();
-      return `text:${text}:${Math.round(rect.top / 8)}:${Math.round(rect.left / 8)}`;
+      const text = this.normalize(
+        element.closest('div')?.textContent ?? element.textContent ?? '',
+      ).slice(0, 120);
+
+      return text ? `text:${text}` : null;
     }
 
     private stableUrlPart(value: string): string | null {
@@ -555,22 +575,24 @@ export function isSelectionTargetChecked({
       if (element instanceof HTMLInputElement) {
         return element.checked;
       }
-      if (element.getAttribute('aria-checked') === 'true') {
-        return true;
-      }
 
-      const icon = element.querySelector('[data-bloks-name="ig.components.Icon"], img, svg');
-      if (!icon) {
-        return false;
-      }
+      return [element, ...Array.from(element.querySelectorAll('*'))].some((node) => {
+        if (node.getAttribute('aria-checked') === 'true') {
+          return true;
+        }
 
-      const style = window.getComputedStyle(icon);
-      const mask = style.maskImage || style.webkitMaskImage || '';
-      const resourceName = icon.getAttribute('resource_name') ?? '';
-      const source = icon.getAttribute('src') ?? icon.getAttribute('href') ?? '';
-      return [mask, resourceName, source].some((value) =>
-        this.normalize(value).includes('circle-check'),
-      );
+        if (!(node instanceof HTMLElement)) {
+          return false;
+        }
+
+        const style = window.getComputedStyle(node);
+        const mask = style.maskImage || style.webkitMaskImage || '';
+        const background = style.backgroundImage || '';
+        const source = node.getAttribute('src') ?? node.getAttribute('href') ?? '';
+        const signature = this.normalize([mask, background, source].join(' '));
+
+        return signature.includes('circle-check') || signature.includes('check__filled');
+      });
     }
 
     private isControl(element: Element): boolean {
@@ -642,16 +664,24 @@ export function isSelectionTargetChecked({
     }
 
     private textPositionSignature(element: Element): string | null {
-      const text = this.normalize(
-        element.closest('div')?.textContent ?? element.textContent ?? '',
-      ).slice(0, 80);
+      let current: Element | null = element;
 
-      if (!text) {
-        return null;
+      for (let depth = 0; current && depth < 12; depth += 1) {
+        const ariaLabel = current.getAttribute('aria-label');
+        if (ariaLabel && !/casilla|checkbox|seleccionar/i.test(ariaLabel)) {
+          const normalizedLabel = this.normalize(ariaLabel).slice(0, 120);
+          if (normalizedLabel) {
+            return `aria:${normalizedLabel}`;
+          }
+        }
+        current = current.parentElement;
       }
 
-      const rect = element.getBoundingClientRect();
-      return `text:${text}:${Math.round(rect.top / 8)}:${Math.round(rect.left / 8)}`;
+      const text = this.normalize(
+        element.closest('div')?.textContent ?? element.textContent ?? '',
+      ).slice(0, 120);
+
+      return text ? `text:${text}` : null;
     }
 
     private stableUrlPart(value: string): string | null {
@@ -694,20 +724,31 @@ export function collectSelectionResult({
       const selectedSignatures = this.collectSelectedSignatures();
       const confirmedCount = this.readSelectedCount();
       const checkedCount = selectedSignatures.length;
-      const effectiveCount = confirmedCount ?? (checkedCount || attemptedCount);
+      const hasItemCheckboxes =
+        document.querySelectorAll('[data-testid="bulk_action_checkbox"]').length > 0;
+      const effectiveCount = confirmedCount ?? (hasItemCheckboxes ? checkedCount : attemptedCount);
 
       return {
         count: effectiveCount,
         confirmedCount,
         attemptedCount,
         signatures: selectedSignatures.slice(0, effectiveCount),
+        countIsCumulative: confirmedCount !== null || hasItemCheckboxes,
       };
     }
 
     private collectSelectedSignatures(): string[] {
+      const itemCheckboxes = Array.from(
+        document.querySelectorAll('[data-testid="bulk_action_checkbox"]'),
+      );
+      const candidates =
+        itemCheckboxes.length > 0
+          ? itemCheckboxes
+          : Array.from(document.querySelectorAll(checkboxSelector));
+
       return Array.from(
         new Set(
-          Array.from(document.querySelectorAll(checkboxSelector))
+          candidates
             .filter((checkbox) => this.isChecked(checkbox))
             .map((checkbox) => this.getItemSignature(checkbox))
             .filter((signature): signature is string => Boolean(signature)),
@@ -719,22 +760,24 @@ export function collectSelectionResult({
       if (element instanceof HTMLInputElement) {
         return element.checked;
       }
-      if (element.getAttribute('aria-checked') === 'true') {
-        return true;
-      }
 
-      const icon = element.querySelector('[data-bloks-name="ig.components.Icon"], img, svg');
-      if (!icon) {
-        return false;
-      }
+      return [element, ...Array.from(element.querySelectorAll('*'))].some((node) => {
+        if (node.getAttribute('aria-checked') === 'true') {
+          return true;
+        }
 
-      const style = window.getComputedStyle(icon);
-      const mask = style.maskImage || style.webkitMaskImage || '';
-      const resourceName = icon.getAttribute('resource_name') ?? '';
-      const source = icon.getAttribute('src') ?? icon.getAttribute('href') ?? '';
-      return [mask, resourceName, source].some((value) =>
-        this.normalize(value).includes('circle-check'),
-      );
+        if (!(node instanceof HTMLElement)) {
+          return false;
+        }
+
+        const style = window.getComputedStyle(node);
+        const mask = style.maskImage || style.webkitMaskImage || '';
+        const background = style.backgroundImage || '';
+        const source = node.getAttribute('src') ?? node.getAttribute('href') ?? '';
+        const signature = this.normalize([mask, background, source].join(' '));
+
+        return signature.includes('circle-check') || signature.includes('check__filled');
+      });
     }
 
     private getItemSignature(element: Element): string | null {
@@ -777,16 +820,24 @@ export function collectSelectionResult({
     }
 
     private textPositionSignature(element: Element): string | null {
-      const text = this.normalize(
-        element.closest('div')?.textContent ?? element.textContent ?? '',
-      ).slice(0, 80);
+      let current: Element | null = element;
 
-      if (!text) {
-        return null;
+      for (let depth = 0; current && depth < 12; depth += 1) {
+        const ariaLabel = current.getAttribute('aria-label');
+        if (ariaLabel && !/casilla|checkbox|seleccionar/i.test(ariaLabel)) {
+          const normalizedLabel = this.normalize(ariaLabel).slice(0, 120);
+          if (normalizedLabel) {
+            return `aria:${normalizedLabel}`;
+          }
+        }
+        current = current.parentElement;
       }
 
-      const rect = element.getBoundingClientRect();
-      return `text:${text}:${Math.round(rect.top / 8)}:${Math.round(rect.left / 8)}`;
+      const text = this.normalize(
+        element.closest('div')?.textContent ?? element.textContent ?? '',
+      ).slice(0, 120);
+
+      return text ? `text:${text}` : null;
     }
 
     private stableUrlPart(value: string): string | null {

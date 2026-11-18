@@ -32,7 +32,7 @@ export class CleanupRunner {
       await this.waitBeforeNextBatchIfThrottled();
 
       await this.selectModeController.ensure();
-      const selection = await this.selectionManager.selectBatch();
+      const selection = await this.selectionManager.selectBatch(this.context.pickBatchSize());
 
       if (selection.count === 0) {
         this.context.markEmptyPass();
@@ -90,9 +90,27 @@ export class CleanupRunner {
       this.context.info(
         `Processed batch: ${processed} item(s). Total processed: ${this.context.totalProcessed}.`,
       );
+
+      await this.waitBetweenBatches();
     }
 
     return this.context.totalProcessed;
+  }
+
+  private async waitBetweenBatches(): Promise<void> {
+    if (this.context.hasReachedLimit) {
+      return;
+    }
+
+    const { min, max } = this.context.options.batchDelay;
+    const delay = min + Math.floor(Math.random() * (max - min + 1));
+
+    if (delay <= 0) {
+      return;
+    }
+
+    this.context.debug(`Waiting ${delay} ms before the next batch.`);
+    await this.delay(delay);
   }
 
   private async waitBeforeNextBatchIfThrottled(): Promise<void> {

@@ -17,6 +17,7 @@ export class CleanupContext {
     confirmedCount: null,
     attemptedCount: 0,
     signatures: [],
+    countIsCumulative: false,
   };
   public lastToast: CleanupToastResult | null = null;
   public lastMutation: InstagramMutationResult | null = null;
@@ -34,12 +35,15 @@ export class CleanupContext {
     return getTranslationValues(this.translations, controlTranslationKeys).map(normalizeText);
   }
 
-  public get batchSize(): number {
-    const remaining = this.options.limit
-      ? Math.max(0, this.options.limit - this.totalProcessed)
-      : this.options.batchSize;
+  public pickBatchSize(): number {
+    const { min, max } = this.options.batchSize;
+    const size = min + Math.floor(Math.random() * (max - min + 1));
 
-    return Math.min(this.options.batchSize, remaining || this.options.batchSize);
+    if (this.options.limit === undefined) {
+      return size;
+    }
+
+    return Math.max(1, Math.min(size, this.options.limit - this.totalProcessed));
   }
 
   public get hasReachedLimit(): boolean {

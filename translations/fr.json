@@ -16,6 +16,7 @@
   "apply": ["Appliquer"],
   "done": ["Terminé"],
   "cancel": ["Annuler"],
+  "doneNotification": ["C'est tout, on a terminé."],
   "likesCleanupToast": [
     "Vous n’aimez plus {{count}} publication",
     "Vous n’aimez plus {{count}} publications",

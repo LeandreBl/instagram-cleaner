@@ -12,7 +12,9 @@ interface RawArguments {
   range?: string;
   from?: string;
   to?: string;
-  batchSize: number;
+  batchSize: string;
+  batchDelay: string;
+  confirmDelay: string;
   clickDelay: string;
   limit?: number;
   profileDir?: string;
@@ -22,6 +24,10 @@ interface RawArguments {
   loginTimeout: number;
   translations?: string;
   notifyPrompts: boolean;
+  notifyDone: boolean;
+  closeOnFinish: boolean;
+  toastTimeout: number;
+  errorDialogTimeout: number;
   dryRun: boolean;
   noSandbox: boolean;
   logLevel: LogLevel;
@@ -38,10 +44,22 @@ function resolveTranslationsPath(rootDirectory: string, translationsArgument: st
   return path.resolve(translationsArgument);
 }
 
-function parseClickDelay(value: string): { min: number; max: number } {
+function parseIntegerRange(
+  value: string,
+  optionName: string,
+  minAllowed: number,
+  maxAllowed: number,
+  allowSingleValue: boolean,
+): { min: number; max: number } {
   const parts = value.split(':');
-  if (parts.length > 2 || parts.some((part) => part.trim() === '')) {
-    throw new Error('--click-delay must use min:max milliseconds, for example 80:240.');
+  const expectsRange = parts.length === 2;
+
+  if (
+    parts.length > 2 ||
+    parts.some((part) => part.trim() === '') ||
+    (!allowSingleValue && !expectsRange)
+  ) {
+    throw new Error(`${optionName} must use min:max, for example ${minAllowed}:${maxAllowed}.`);
   }
 
   const [minValue, maxValue] = parts;
@@ -49,23 +67,24 @@ function parseClickDelay(value: string): { min: number; max: number } {
   const max = Number(maxValue ?? minValue);
 
   if (!Number.isInteger(min) || !Number.isInteger(max)) {
-    throw new Error('--click-delay must use integer milliseconds, for example 80:240.');
-  }
-
-  if (min < 0 || max < 0) {
-    throw new Error('--click-delay values must be non-negative millisecond values.');
+    throw new Error(`${optionName} must use integer values.`);
   }
 
   if (min > max) {
-    throw new Error('--click-delay min must be lower than or equal to max.');
+    throw new Error(`${optionName} min must be lower than or equal to max.`);
   }
 
-  if (max > 60_000) {
-    throw new Error('--click-delay max must be lower than or equal to 60000 milliseconds.');
+  if (min < minAllowed || max > maxAllowed) {
+    throw new Error(`${optionName} values must be between ${minAllowed} and ${maxAllowed}.`);
   }
 
   return { min, max };
 }
+
+const batchSizeBounds = { min: 20, max: 99 } as const;
+const clickDelayBounds = { min: 0, max: 60_000 } as const;
+const batchDelayBounds = { min: 0, max: 600_000 } as const;
+const confirmDelayBounds = { min: 0, max: 60_000 } as const;
 
 function buildModes(argv: Pick<RawArguments, 'likes' | 'comments'>): CleanupMode[] {
   return [
@@ -78,8 +97,34 @@ function buildCliOptions(rootDirectory: string, argv: RawArguments): CliOptions 
   const options: CliOptions = {
     modes: buildModes(argv),
     range: parseRange(argv.range, argv.from, argv.to),
-    batchSize: argv.batchSize,
-    clickDelay: parseClickDelay(argv.clickDelay),
+    batchSize: parseIntegerRange(
+      argv.batchSize,
+      '--batch-size',
+      batchSizeBounds.min,
+      batchSizeBounds.max,
+      true,
+    ),
+    clickDelay: parseIntegerRange(
+      argv.clickDelay,
+      '--click-delay',
+      clickDelayBounds.min,
+      clickDelayBounds.max,
+      true,
+    ),
+    batchDelay: parseIntegerRange(
+      argv.batchDelay,
+      '--batch-delay',
+      batchDelayBounds.min,
+      batchDelayBounds.max,
+      true,
+    ),
+    confirmDelay: parseIntegerRange(
+      argv.confirmDelay,
+      '--confirm-delay',
+      confirmDelayBounds.min,
+      confirmDelayBounds.max,
+      true,
+    ),
     useSystemProfile: argv.useSystemProfile,
     loginTimeout: argv.loginTimeout,
     translationsPath: resolveTranslationsPath(
@@ -87,6 +132,10 @@ function buildCliOptions(rootDirectory: string, argv: RawArguments): CliOptions 
       argv.translations ?? defaultTranslationsArgument,
     ),
     notifyPrompts: argv.notifyPrompts,
+    notifyDone: argv.notifyDone,
+    closeOnFinish: argv.closeOnFinish,
+    toastTimeoutMs: argv.toastTimeout,
+    errorDialogTimeoutMs: argv.errorDialogTimeout,
     dryRun: argv.dryRun,
     noSandbox: argv.noSandbox,
     logLevel: argv.logLevel,
@@ -135,13 +184,25 @@ export function parseCliOptions(rootDirectory: string): CliOptions {
       describe: 'Optional maximum date.',
     })
     .option('batch-size', {
-      type: 'number',
-      default: 20,
-      describe: 'Maximum number of items selected per batch.',
+      type: 'string',
+      default: '90:99',
+      describe:
+        'Items selected per batch: fixed N or min:max for a random size per batch. Between 20 and 99; Instagram caps a cleanup at 100.',
+    })
+    .option('batch-delay', {
+      type: 'string',
+      default: '8000:25000',
+      describe: 'Min:max milliseconds to wait between batches. A random value is used per batch.',
+    })
+    .option('confirm-delay', {
+      type: 'string',
+      default: '600:1800',
+      describe:
+        'Min:max milliseconds to wait between the cleanup action click and its confirmation. A random value is used per batch.',
     })
     .option('click-delay', {
       type: 'string',
-      default: '150:150',
+      default: '120:350',
       describe:
         'Min:max milliseconds to wait between each like/comment checkbox click. A random value is used for every click.',
     })
@@ -184,6 +245,27 @@ export function parseCliOptions(rootDirectory: string): CliOptions {
       default: false,
       describe: 'Send a desktop notification whenever the script needs terminal input.',
     })
+    .option('notify-done', {
+      type: 'boolean',
+      default: false,
+      describe: 'Send a desktop notification when the cleanup finishes.',
+    })
+    .option('close-on-finish', {
+      type: 'boolean',
+      default: false,
+      describe: 'Close the browser when the cleanup finishes instead of leaving it open.',
+    })
+    .option('toast-timeout', {
+      type: 'number',
+      default: 12_000,
+      describe: 'Base milliseconds to wait for the Instagram cleanup toast confirmation.',
+    })
+    .option('error-dialog-timeout', {
+      type: 'number',
+      default: 30_000,
+      describe:
+        'Milliseconds to wait for an Instagram error dialog after the cleanup toast timeout.',
+    })
     .option('dry-run', {
       type: 'boolean',
       default: false,
@@ -218,10 +300,13 @@ export function parseCliOptions(rootDirectory: string): CliOptions {
         );
       }
 
-      const batchSize = Number(args['batchSize']);
-      if (batchSize < 1 || batchSize > 100) {
-        throw new Error('--batch-size must be between 1 and 100.');
-      }
+      parseIntegerRange(
+        String(args['batchSize']),
+        '--batch-size',
+        batchSizeBounds.min,
+        batchSizeBounds.max,
+        true,
+      );
 
       if (args.limit !== undefined && args.limit < 1) {
         throw new Error('--limit must be greater than 0.');
@@ -238,11 +323,41 @@ export function parseCliOptions(rootDirectory: string): CliOptions {
         throw new Error('--login-timeout must be at least 10000 milliseconds.');
       }
 
+      const toastTimeoutMs = Number(args['toastTimeout']);
+      if (toastTimeoutMs < 1_000 || toastTimeoutMs > 60_000) {
+        throw new Error('--toast-timeout must be between 1000 and 60000 milliseconds.');
+      }
+
+      const errorDialogTimeoutMs = Number(args['errorDialogTimeout']);
+      if (errorDialogTimeoutMs < 1_000 || errorDialogTimeoutMs > 120_000) {
+        throw new Error('--error-dialog-timeout must be between 1000 and 120000 milliseconds.');
+      }
+
       if (!isLogLevel(String(args['logLevel']))) {
         throw new Error('--log-level must be one of: silent, error, warn, info, debug.');
       }
 
-      parseClickDelay(String(args['clickDelay']));
+      parseIntegerRange(
+        String(args['clickDelay']),
+        '--click-delay',
+        clickDelayBounds.min,
+        clickDelayBounds.max,
+        true,
+      );
+      parseIntegerRange(
+        String(args['batchDelay']),
+        '--batch-delay',
+        batchDelayBounds.min,
+        batchDelayBounds.max,
+        true,
+      );
+      parseIntegerRange(
+        String(args['confirmDelay']),
+        '--confirm-delay',
+        confirmDelayBounds.min,
+        confirmDelayBounds.max,
+        true,
+      );
 
       return true;
     })

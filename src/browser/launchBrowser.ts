@@ -173,8 +173,10 @@ function findSystemUserDataDir(): string | undefined {
   const systemProfileCandidates = [
     path.join(os.homedir(), '.config/google-chrome'),
     path.join(os.homedir(), '.config/chromium'),
+    path.join(os.homedir(), '.config/BraveSoftware/Brave-Browser'),
     fromEnvPath('LOCALAPPDATA', 'Google', 'Chrome', 'User Data'),
     fromEnvPath('LOCALAPPDATA', 'Chromium', 'User Data'),
+    fromEnvPath('LOCALAPPDATA', 'BraveSoftware', 'Brave-Browser', 'User Data'),
   ];
 
   return systemProfileCandidates.find((candidate) => candidate && fs.existsSync(candidate));
@@ -347,8 +349,13 @@ function findSystemChromeExecutable(): string | undefined {
     fromEnvPath('LOCALAPPDATA', 'Google', 'Chrome', 'Application', 'chrome.exe'),
     fromEnvPath('PROGRAMFILES', 'Google', 'Chrome', 'Application', 'chrome.exe'),
     fromEnvPath('PROGRAMFILES(X86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    fromEnvPath('LOCALAPPDATA', 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+    fromEnvPath('PROGRAMFILES', 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+    fromEnvPath('PROGRAMFILES(X86)', 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
     '/mnt/c/Program Files/Google/Chrome/Application/chrome.exe',
     '/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+    '/mnt/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe',
+    '/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe',
   ].find((candidate) => candidate && fs.existsSync(candidate));
 }
 
