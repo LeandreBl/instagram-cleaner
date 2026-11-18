@@ -22,8 +22,7 @@ export class SelectionManager {
     this.scrollManager = new ScrollManager(context);
   }
 
-  public async selectBatch(): Promise<SelectionResult> {
-    const targetCount = this.context.batchSize;
+  public async selectBatch(targetCount: number): Promise<SelectionResult> {
     let selection = this.emptySelection();
 
     for (let pass = 0; pass < maxSelectionPasses && selection.count < targetCount; pass += 1) {

@@ -11,14 +11,14 @@ import { cleanupHistory } from './instagram/cleanup.js';
 import { applyDateFilter } from './instagram/dateFilter.js';
 import { waitForInstagramLogin } from './instagram/session.js';
 import { buildTarget } from './instagram/targets.js';
-import { loadTranslations } from './translations/loadTranslations.js';
+import { getTranslationValues, loadTranslations } from './translations/loadTranslations.js';
 import type {
   CleanupOptions,
   CliOptions,
   TargetConfiguration,
   TranslationDictionary,
 } from './types.js';
-import { configureDesktopNotifications } from './utils/desktopNotification.js';
+import { configureDesktopNotifications, notifyCleanupDone } from './utils/desktopNotification.js';
 import { logger, setLogLevel } from './utils/logger.js';
 import { formatRange } from './utils/time.js';
 
@@ -44,7 +44,9 @@ interface CleanupJob {
 function logRunConfiguration(options: CliOptions): void {
   logger.debug(`Modes: ${options.modes.join(', ')}`);
   logger.debug(`Period: ${formatRange(options.range)}`);
+  logger.debug(`Batch size: ${options.batchSize.min}:${options.batchSize.max} items`);
   logger.debug(`Click delay: ${options.clickDelay.min}:${options.clickDelay.max} ms`);
+  logger.debug(`Batch delay: ${options.batchDelay.min}:${options.batchDelay.max} ms`);
   logger.debug(`Recover on error: ${options.recoverOnError ? 'enabled' : 'disabled'}`);
 }
 
@@ -65,6 +67,7 @@ function buildCleanupOptions(options: CliOptions): CleanupOptions {
   const cleanupOptions: CleanupOptions = {
     batchSize: options.batchSize,
     clickDelay: options.clickDelay,
+    batchDelay: options.batchDelay,
     dryRun: options.dryRun,
   };
 
@@ -259,7 +262,7 @@ function delay(durationMs: number): Promise<void> {
 async function main(): Promise<void> {
   const options = parseCliOptions(rootDirectory);
   setLogLevel(options.logLevel);
-  configureDesktopNotifications(options.notifyPrompts);
+  configureDesktopNotifications({ prompts: options.notifyPrompts, done: options.notifyDone });
   const translations = loadTranslations(options.translationsPath);
   const targets = options.modes.map((mode) => buildTarget(mode, translations));
 
@@ -279,6 +282,12 @@ async function main(): Promise<void> {
   try {
     const jobs = createCleanupJobs(page, targets);
     const keepBrowserOpen = await runCleanupLoop(page, jobs, translations, options);
+
+    if (keepBrowserOpen && options.notifyDone) {
+      notifyCleanupDone(
+        getTranslationValues(translations, ['doneNotification'])[0] ?? 'Cleanup finished.',
+      );
+    }
 
     if (!keepBrowserOpen) {
       await browserLifecycle.close('program stopped before completion');

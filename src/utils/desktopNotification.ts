@@ -1,10 +1,12 @@
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
-let desktopNotificationsEnabled = false;
+let promptNotificationsEnabled = false;
+let doneNotificationsEnabled = false;
 
-export function configureDesktopNotifications(enabled: boolean): void {
-  desktopNotificationsEnabled = enabled;
+export function configureDesktopNotifications(options: { prompts: boolean; done: boolean }): void {
+  promptNotificationsEnabled = options.prompts;
+  doneNotificationsEnabled = options.done;
 }
 
 function runDetached(command: string, args: string[]): void {
@@ -23,13 +25,12 @@ function escapeAppleScriptText(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
-export function notifyUserPrompt(message: string): void {
-  if (!desktopNotificationsEnabled) {
-    return;
-  }
+function truncate(value: string): string {
+  return value.length > 180 ? `${value.slice(0, 177)}...` : value;
+}
 
-  const title = 'instagram-cleaner needs input';
-  const body = message.length > 180 ? `${message.slice(0, 177)}...` : message;
+function notifyDesktop(title: string, message: string): void {
+  const body = truncate(message);
 
   if (process.platform === 'linux') {
     runDetached('notify-send', [title, body]);
@@ -53,4 +54,20 @@ export function notifyUserPrompt(message: string): void {
       `[void] [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Information; $n.BalloonTipTitle = '${title.replace(/'/g, "''")}'; $n.BalloonTipText = '${body.replace(/'/g, "''")}'; $n.Visible = $true; $n.ShowBalloonTip(5000); Start-Sleep -Seconds 6; $n.Dispose();`,
     ]);
   }
+}
+
+export function notifyUserPrompt(message: string): void {
+  if (!promptNotificationsEnabled) {
+    return;
+  }
+
+  notifyDesktop('instagram-cleaner needs input', message);
+}
+
+export function notifyCleanupDone(message: string): void {
+  if (!doneNotificationsEnabled) {
+    return;
+  }
+
+  notifyDesktop('instagram-cleaner', message);
 }

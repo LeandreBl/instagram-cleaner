@@ -57,6 +57,12 @@ On Windows, the script looks for Chrome in the usual `Program Files` and `%LOCAL
 node ./dist/cli.js --likes --chrome-executable "C:\Program Files\Google\Chrome\Application\chrome.exe"
 ```
 
+Any Chromium-based browser works. To reuse an existing Brave session, point the executable and profile at Brave and keep Brave fully closed while the script runs:
+
+```sh
+node ./dist/cli.js --likes --chrome-executable "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" --profile-dir "%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data"
+```
+
 If Chrome is not installed inside Linux, or if you want WSL2 to launch the Windows Chrome executable, provide either the WSL mount path or the Windows path:
 
 ```sh
@@ -124,6 +130,7 @@ Available files:
 
 - [translations/en.json](translations/en.json)
 - [translations/fr.json](translations/fr.json)
+- [translations/es.json](translations/es.json)
 
 For another language, add a JSON file with `key => value` entries. A value can be a string or an array of strings (just in case).
 
@@ -136,14 +143,15 @@ Use [translations/en.json](translations/en.json) as a template for another langu
 ## Useful options
 
 ```sh
-node ./dist/cli.js --likes --batch-size 10 --limit 50
-node ./dist/cli.js --likes --click-delay 80:240
+node ./dist/cli.js --likes --batch-size 20:30 --limit 50
+node ./dist/cli.js --likes --click-delay 500:1200 --batch-delay 8000:25000
 node ./dist/cli.js --comments --dry-run
 node ./dist/cli.js --likes --profile-dir .chrome-profile
 node ./dist/cli.js --likes --use-system-profile
 node ./dist/cli.js --likes --chrome-executable "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
 node ./dist/cli.js --likes --login-timeout 900000
 node ./dist/cli.js --comments --notify-prompts
+node ./dist/cli.js --comments --notify-done
 node ./dist/cli.js --comments --no-sandbox
 node ./dist/cli.js --likes --log-level debug
 node ./dist/cli.js --comments --no-recover-on-error
@@ -151,7 +159,13 @@ node ./dist/cli.js --comments --no-recover-on-error
 
 `--notify-prompts` sends a desktop notification whenever the script needs input in the terminal, for example after an unexpected navigation confirmation.
 
-`--click-delay min:max` controls the wait between each like/comment checkbox click, in milliseconds. The script chooses a random value inside the range for every click, for example `--click-delay 120:450`. The default is `150:150`, which keeps the previous fixed delay.
+`--notify-done` sends a desktop notification when the cleanup finishes. The text comes from the `doneNotification` translation, so it follows the selected language.
+
+`--batch-size min:max` selects a random number of items per batch inside the range, never below 20. A fixed value such as `--batch-size 25` disables the random count. The default is `20:30`.
+
+`--click-delay min:max` controls the wait between each like/comment checkbox click, in milliseconds. The script chooses a random value inside the range for every click, for example `--click-delay 500:1200`. The default is `500:1200`.
+
+`--batch-delay min:max` controls the wait between batches, in milliseconds. The script chooses a random value inside the range after every processed batch, for example `--batch-delay 8000:25000`. The default is `8000:25000`.
 
 If Instagram appears to throttle a cleanup batch, the script waits longer, refreshes the page, and checks whether the same likes/comments are still visible. When the same items reappear after refresh, or when Instagram opens an error dialog with an OK button after confirmation, it automatically backs off: 1 minute, then 2 minutes, then 3 minutes, up to 10 minutes, until batches start succeeding again.
 
