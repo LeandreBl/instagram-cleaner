@@ -1,0 +1,24 @@
+{
+  "select": ["Seleccionar"],
+  "unlike": ["Ya no me gusta"],
+  "delete": ["Eliminar"],
+  "confirm": ["Confirmar"],
+  "remove": ["Quitar"],
+  "sort": ["Ordenar"],
+  "filter": ["Filtrar"],
+  "sortFilter": ["Ordenar y filtrar", "Filtrar"],
+  "apply": ["Aplicar"],
+  "done": ["Listo"],
+  "cancel": ["Cancelar"],
+  "doneNotification": ["Eso es todo amigo, ya terminamos."],
+  "likesCleanupToast": [
+    "Ya no te gusta {{count}} publicación",
+    "Ya no te gustan {{count}} publicaciones"
+  ],
+  "commentsCleanupToast": [
+    "Eliminaste {{count}} comentario",
+    "Eliminaste {{count}} comentarios",
+    "Quitaste {{count}} comentario",
+    "Quitaste {{count}} comentarios"
+  ]
+}

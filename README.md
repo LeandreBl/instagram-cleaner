@@ -57,6 +57,12 @@ On Windows, the script looks for Chrome in the usual `Program Files` and `%LOCAL
 node ./dist/cli.js --likes --chrome-executable "C:\Program Files\Google\Chrome\Application\chrome.exe"
 ```
 
+Any Chromium-based browser works. Brave is detected automatically in the usual install locations when `--chrome-executable` is omitted, and `--use-system-profile` also finds the Brave profile. To reuse an existing Brave session explicitly, point the executable and profile at Brave and keep Brave fully closed while the script runs:
+
+```sh
+node ./dist/cli.js --likes --chrome-executable "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" --profile-dir "%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data"
+```
+
 If Chrome is not installed inside Linux, or if you want WSL2 to launch the Windows Chrome executable, provide either the WSL mount path or the Windows path:
 
 ```sh
@@ -124,6 +130,7 @@ Available files:
 
 - [translations/en.json](translations/en.json)
 - [translations/fr.json](translations/fr.json)
+- [translations/es.json](translations/es.json)
 
 For another language, add a JSON file with `key => value` entries. A value can be a string or an array of strings (just in case).
 
@@ -136,14 +143,17 @@ Use [translations/en.json](translations/en.json) as a template for another langu
 ## Useful options
 
 ```sh
-node ./dist/cli.js --likes --batch-size 10 --limit 50
-node ./dist/cli.js --likes --click-delay 80:240
+node ./dist/cli.js --likes --batch-size 90:99 --limit 50
+node ./dist/cli.js --likes --click-delay 120:350 --confirm-delay 600:1800
 node ./dist/cli.js --comments --dry-run
 node ./dist/cli.js --likes --profile-dir .chrome-profile
 node ./dist/cli.js --likes --use-system-profile
 node ./dist/cli.js --likes --chrome-executable "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
 node ./dist/cli.js --likes --login-timeout 900000
 node ./dist/cli.js --comments --notify-prompts
+node ./dist/cli.js --comments --notify-done
+node ./dist/cli.js --comments --close-on-finish
+node ./dist/cli.js --likes --toast-timeout 4000 --error-dialog-timeout 4000
 node ./dist/cli.js --comments --no-sandbox
 node ./dist/cli.js --likes --log-level debug
 node ./dist/cli.js --comments --no-recover-on-error
@@ -151,7 +161,19 @@ node ./dist/cli.js --comments --no-recover-on-error
 
 `--notify-prompts` sends a desktop notification whenever the script needs input in the terminal, for example after an unexpected navigation confirmation.
 
-`--click-delay min:max` controls the wait between each like/comment checkbox click, in milliseconds. The script chooses a random value inside the range for every click, for example `--click-delay 120:450`. The default is `150:150`, which keeps the previous fixed delay.
+`--notify-done` sends a desktop notification when the cleanup finishes. The text comes from the `doneNotification` translation, so it follows the selected language.
+
+`--close-on-finish` closes the browser when the cleanup finishes instead of leaving it open for verification. This is useful when several runs are chained in one command or script.
+
+`--toast-timeout` (default 12000 ms) and `--error-dialog-timeout` (default 30000 ms) control how long the script waits for Instagram's confirmation toast and, after that, for an error dialog. Lower values make long cleanups faster, at the cost of relying more on the network and visibility checks to detect throttling.
+
+`--batch-size min:max` selects a random number of items per batch inside the range: never below 20 and never above 99, because Instagram caps a cleanup action at 100. A fixed value such as `--batch-size 99` disables the random count. The default is `90:99`, which keeps the number of confirmation round-trips low.
+
+`--click-delay min:max` controls the wait between each like/comment checkbox click, in milliseconds. The script chooses a random value inside the range for every click, for example `--click-delay 120:350`. The default is `120:350`, which keeps the selection burst fast.
+
+`--confirm-delay min:max` controls the wait between the cleanup action click (for example `Eliminar`) and its confirmation click. The script chooses a random value per batch; the default is `600:1800` ms, which keeps a human-like pause before confirming.
+
+`--batch-delay min:max` controls the wait between batches, in milliseconds. The script chooses a random value inside the range after every processed batch, for example `--batch-delay 8000:25000`. The default is `8000:25000`.
 
 If Instagram appears to throttle a cleanup batch, the script waits longer, refreshes the page, and checks whether the same likes/comments are still visible. When the same items reappear after refresh, or when Instagram opens an error dialog with an OK button after confirmation, it automatically backs off: 1 minute, then 2 minutes, then 3 minutes, up to 10 minutes, until batches start succeeding again.
 

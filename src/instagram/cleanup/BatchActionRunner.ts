@@ -4,12 +4,10 @@ import type { CleanupContext } from './CleanupContext.js';
 import { NetworkVerifier } from './NetworkVerifier.js';
 import { ToastVerifier } from './ToastVerifier.js';
 
-const baseToastTimeout = 12_000;
 const toastTimeoutPerSelectedItem = 350;
 const maxToastTimeout = 90_000;
 const confirmationDialogCloseTimeoutMs = 15_000;
 const errorDialogRecoveryTimeoutMs = 120_000;
-const postToastTimeoutErrorDialogCheckMs = 30_000;
 
 export type BatchActionResult =
   | { status: 'confirmed'; count: number | null }
@@ -38,6 +36,8 @@ export class BatchActionRunner {
     if (!actionClicked) {
       throw new Error('The cleanup action button was not found. No manual fallback was attempted.');
     }
+
+    await this.delay(this.randomConfirmDelay());
 
     const confirmed = await clickByLabels(this.context.page, this.context.target.confirmLabels, {
       timeout: 8000,
@@ -72,7 +72,7 @@ export class BatchActionRunner {
       this.context.debug(`Instagram confirmed cleanup: ${toastResult.text}`);
     } else {
       this.context.warn('No Instagram cleanup toast was detected after confirmation.');
-      if (await this.waitForInstagramErrorDialog(postToastTimeoutErrorDialogCheckMs)) {
+      if (await this.waitForInstagramErrorDialog(this.context.options.errorDialogTimeoutMs)) {
         await this.recoverFromInstagramErrorDialog();
         return { status: 'recovered-error-dialog' };
       }
@@ -84,10 +84,16 @@ export class BatchActionRunner {
     return { status: 'confirmed', count: toastResult?.count ?? null };
   }
 
+  private randomConfirmDelay(): number {
+    const { min, max } = this.context.options.confirmDelay;
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+
   private getToastTimeout(): number {
     return Math.min(
       maxToastTimeout,
-      baseToastTimeout + this.context.currentSelection.count * toastTimeoutPerSelectedItem,
+      this.context.options.toastTimeoutMs +
+        this.context.currentSelection.count * toastTimeoutPerSelectedItem,
     );
   }
 

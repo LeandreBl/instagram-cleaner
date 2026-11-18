@@ -11,7 +11,7 @@ export interface DateRange {
   to: Date | null;
 }
 
-export interface MillisecondRange {
+export interface NumberRange {
   min: number;
   max: number;
 }
@@ -19,8 +19,10 @@ export interface MillisecondRange {
 export interface CliOptions {
   modes: CleanupMode[];
   range: DateRange;
-  batchSize: number;
-  clickDelay: MillisecondRange;
+  batchSize: NumberRange;
+  clickDelay: NumberRange;
+  batchDelay: NumberRange;
+  confirmDelay: NumberRange;
   limit?: number;
   profileDir?: string;
   profileName?: string;
@@ -29,6 +31,10 @@ export interface CliOptions {
   loginTimeout: number;
   translationsPath?: string;
   notifyPrompts: boolean;
+  notifyDone: boolean;
+  closeOnFinish: boolean;
+  toastTimeoutMs: number;
+  errorDialogTimeoutMs: number;
   dryRun: boolean;
   noSandbox: boolean;
   logLevel: LogLevel;
@@ -44,8 +50,12 @@ export interface TargetConfiguration {
 }
 
 export interface CleanupOptions {
-  batchSize: number;
-  clickDelay: MillisecondRange;
+  batchSize: NumberRange;
+  clickDelay: NumberRange;
+  batchDelay: NumberRange;
+  confirmDelay: NumberRange;
+  toastTimeoutMs: number;
+  errorDialogTimeoutMs: number;
   limit?: number;
   dryRun: boolean;
 }

@@ -12,6 +12,7 @@ export const defaultTranslations = {
   apply: ['Apply'],
   done: ['Done'],
   cancel: ['Cancel'],
+  doneNotification: ["That's all, we're done."],
   likesCleanupToast: ['You unliked {{count}} post', 'You unliked {{count}} posts'],
   commentsCleanupToast: [
     'You deleted {{count}} comment',

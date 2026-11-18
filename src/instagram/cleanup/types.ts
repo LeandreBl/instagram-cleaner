@@ -13,6 +13,7 @@ export interface SelectionResult {
   count: number;
   confirmedCount: number | null;
   attemptedCount: number;
+  countIsCumulative: boolean;
   signatures: string[];
 }
 
